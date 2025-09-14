@@ -211,6 +211,23 @@ function drawEngine(ctx) {
         const statsWidth = Math.min(150, sectionWidth - 20);
         const statsX = midX - statsWidth / 2;
 
+        // Draw connecting lines from text edges to section boundaries
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1;
+
+        // Left line - from left edge of text to left boundary
+        ctx.moveTo(section.start, 45);
+        ctx.lineTo(section.start, TOP_MARGIN + engine.getTop(section.start) - 10);
+
+        // Right line - from right edge of text to right boundary
+        ctx.moveTo(section.end, 45);
+        ctx.lineTo(section.end, TOP_MARGIN + engine.getTop(section.end) - 10);
+
+        ctx.stroke();
+        ctx.setLineDash([]);
+
         ctx.font = '16px Arial';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.textAlign = 'center';

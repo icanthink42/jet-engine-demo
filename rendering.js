@@ -1,23 +1,17 @@
-// Rendering constants
 let WINDOW_WIDTH = window.innerWidth;
 let WINDOW_HEIGHT = window.innerHeight;
 let PARTICLE_COUNT = 150;
 
-// Colors
 const BLACK = 'rgb(0, 0, 0)';
 const WHITE = 'rgb(255, 255, 255)';
 
-// Setup canvas
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-// Enable alpha blending for flame effects
 ctx.globalCompositeOperation = 'source-over';
 
-// Create engine
 const engine = new Engine(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-// Create particles
 let particles = [];
 function createParticles() {
     particles = [];
@@ -28,7 +22,6 @@ function createParticles() {
     }
 }
 
-// Handle window resizing
 function handleResize() {
     WINDOW_WIDTH = window.innerWidth;
     WINDOW_HEIGHT = window.innerHeight;
@@ -37,70 +30,97 @@ function handleResize() {
     engine.width = WINDOW_WIDTH;
     engine.height = WINDOW_HEIGHT;
     engine.updateDimensions();
-    createParticles(); // Recreate particles to fit new dimensions
+    createParticles();
 }
 
-// Drawing functions
 function drawEngine(ctx) {
     ctx.strokeStyle = WHITE;
     ctx.lineWidth = 2;
 
-    // Draw top line
     ctx.beginPath();
     for (let x = 0; x < WINDOW_WIDTH; x += 5) {
         const y = engine.getTop(x);
-        if (x === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Draw bottom line
     ctx.beginPath();
     for (let x = 0; x < WINDOW_WIDTH; x += 5) {
         const y = engine.getBottom(x);
-        if (x === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Draw combustion chamber indicator
-    const chamberStart = engine.combustion_start;
-    const chamberEnd = engine.nozzle_start;
+    // Draw compression region (where area decreases)
+    const compressionStart = engine.combustion_start;
+    const compressionEnd = engine.nozzle_start;
+    const compressionGradient = ctx.createLinearGradient(
+        compressionStart, 0,
+        compressionEnd, 0
+    );
+    compressionGradient.addColorStop(0, 'rgba(100, 100, 255, 0)');
+    compressionGradient.addColorStop(0.5, 'rgba(100, 100, 255, 0.2)');
+    compressionGradient.addColorStop(1, 'rgba(100, 100, 255, 0)');
 
-    const gradient = ctx.createLinearGradient(chamberStart, 0, chamberEnd, 0);
-    gradient.addColorStop(0, 'rgba(255, 100, 0, 0)');
-    gradient.addColorStop(0.2, 'rgba(255, 100, 0, 0.2)');
-    gradient.addColorStop(0.8, 'rgba(255, 100, 0, 0.2)');
-    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+    ctx.fillStyle = compressionGradient;
+    ctx.fillRect(
+        compressionStart,
+        engine.getTop(compressionStart),
+        compressionEnd - compressionStart,
+        engine.getBottom(compressionStart) - engine.getTop(compressionStart)
+    );
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(chamberStart, engine.getTop(chamberStart),
-                chamberEnd - chamberStart,
-                engine.getBottom(chamberStart) - engine.getTop(chamberStart));
+    // Draw combustion region (where energy is added)
+    const combustionX = engine.nozzle_start;
+    const combustionWidth = 20;
+    const combustionGradient = ctx.createLinearGradient(
+        combustionX, 0,
+        combustionX + combustionWidth, 0
+    );
+    combustionGradient.addColorStop(0, 'rgba(255, 100, 0, 0)');
+    combustionGradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+    combustionGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+
+    ctx.fillStyle = combustionGradient;
+    ctx.fillRect(
+        combustionX,
+        engine.getTop(combustionX),
+        combustionWidth,
+        engine.getBottom(combustionX) - engine.getTop(combustionX)
+    );
+
+    // Draw section labels
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.textAlign = 'center';
+
+    // Label compression region
+    const compressionMidX = (compressionStart + compressionEnd) / 2;
+    const compressionY = engine.getTop(compressionMidX) - 10;
+    ctx.fillText('Compression (P↑, v↓)', compressionMidX, compressionY);
+
+    // Label combustion region
+    const combustionY = engine.getTop(combustionX) - 10;
+    ctx.fillText('Energy Addition (h↑)', combustionX + combustionWidth/2, combustionY);
+
+    // Label nozzle region
+    const nozzleX = (engine.nozzle_start + engine.outlet) / 2;
+    const nozzleY = engine.getTop(nozzleX) - 10;
+    ctx.fillText('Nozzle (P→v)', nozzleX, nozzleY);
 }
 
-// Set initial canvas size
 handleResize();
 
-// Add resize event listener
 window.addEventListener('resize', handleResize);
 
-// Animation loop
 function animate() {
-    // Clear canvas
     ctx.fillStyle = BLACK;
     ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Draw engine
     drawEngine(ctx);
 
-    // Update and draw particles
     particles.forEach(particle => {
         particle.update(engine);
         particle.draw(ctx);
@@ -109,10 +129,8 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-// Start animation
 animate();
 
-// Setup sliders
 function setupSlider(id, valueId, callback) {
     const slider = document.getElementById(id);
     const valueDisplay = document.getElementById(valueId);
@@ -124,7 +142,6 @@ function setupSlider(id, valueId, callback) {
     });
 }
 
-// Setup all sliders
 setupSlider('particleCount', 'particleCountValue', (value) => {
     PARTICLE_COUNT = value;
     createParticles();
